@@ -11,14 +11,14 @@
 .Sh SYNOPSIS
 .Nm
 .Fl M
-.Op Fl dqruv
+.Op Fl dqrsuv
 .Op Fl i Ar input_file
 .Op Fl o Ar output_file
 .Ar device
 .Op Ar type
 .Nm
 .Fl V
-.Op Fl dv
+.Op Fl dsv
 .Op Fl i Ar input_file
 .Op Fl o Ar output_file
 .Op Ar type
@@ -119,6 +119,11 @@ is specified,
 will fail.
 .It Fl r
 Create a resident credential.
+.It Fl s
+Assume Self Attestation.
+By default,
+.Nm
+assumes Basic Attestation.
 .It Fl u
 Create a U2F credential.
 By default,
@@ -169,7 +174,7 @@ credential id (base64 blob);
 .It
 attestation signature (base64 blob);
 .It
-attestation certificate (base64 blob).
+attestation certificate, if using Basic Attestation (base64 blob).
 .El
 .Pp
 UTF-8 strings passed to
@@ -199,7 +204,7 @@ credential id (base64 blob);
 .It
 attestation signature (base64 blob);
 .It
-attestation certificate (base64 blob).
+attestation certificate, if using Basic Attestation (base64 blob).
 .El
 .Pp
 Upon the successful verification of a credential,
