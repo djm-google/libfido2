@@ -18,6 +18,7 @@
 
 #include "fido.h"
 
+#define MAX_UHID	64
 #define MAX_REPORT_LEN	(sizeof(((struct usb_ctl_report *)(NULL))->ucr_data))
 
 struct hid_openbsd {
@@ -29,11 +30,88 @@ struct hid_openbsd {
 int
 fido_dev_info_manifest(fido_dev_info_t *devlist, size_t ilen, size_t *olen)
 {
-	(void)devlist; /* XXX */
-	(void)ilen; /* XXX */
-	(void)olen; /* XXX */
+	size_t i;
+	char path[64];
+	int is_fido, fd;
+	struct usb_device_info udi;
+	report_desc_t rdesc = NULL;
+	hid_data_t hdata = NULL;
+	hid_item_t hitem;
+	fido_dev_info_t *di;
 
-	return FIDO_ERR_INTERNAL; /* XXX unimplemented */
+	if (ilen == 0)
+		return (FIDO_OK); /* nothing to do */
+
+	if (devlist == NULL || olen == NULL)
+		return (FIDO_ERR_INVALID_ARGUMENT);
+
+	for (i = *olen = 0; i < MAX_UHID && *olen < ilen; i++) {
+		snprintf(path, sizeof(path), "/dev/uhid%zu", i);
+		if ((fd = open(path, O_RDWR)) == -1) {
+			if (errno != ENOENT && errno != ENXIO) {
+				log_debug("%s: open %s: %s", __func__, path,
+				    strerror(errno));
+			}
+			continue;
+		}
+		memset(&udi, 0, sizeof(udi));
+		if (ioctl(fd, USB_GET_DEVICEINFO, &udi) != 0) {
+			log_debug("%s: get device info %s: %s", __func__,
+			    path, strerror(errno));
+			close(fd);
+			continue;
+		}
+		if ((rdesc = hid_get_report_desc(fd)) == 0) {
+			log_debug("%s: failed to get report descriptor: %s",
+			    __func__, path);
+			close(fd);
+			continue;
+		}
+		if ((hdata = hid_start_parse(rdesc,
+		    1<<hid_collection, -1)) == NULL) {
+			log_debug("%s: failed to get report descriptor: %s",
+			    __func__, path);
+			hid_dispose_report_desc(rdesc);
+			close(fd);
+			continue;
+		}
+		is_fido = 0;
+		for (is_fido = 0; !is_fido;) {
+			memset(&hitem, 0, sizeof(hitem));
+			if (hid_get_item(hdata, &hitem) <= 0)
+				break;
+			if ((hitem._usage_page & 0xFFFF0000) == 0xf1d00000)
+				is_fido = 1;
+		}
+		hid_dispose_report_desc(rdesc);
+		close(fd);
+
+		if (!is_fido)
+			continue;
+
+		log_debug("%s: %s: bus = 0x%02x, addr = 0x%02x",
+		    __func__, path, udi.udi_bus, udi.udi_addr);
+		log_debug("%s: %s: vendor = \"%s\", product = \"%s\"",
+		    __func__, path, udi.udi_vendor, udi.udi_product);
+		log_debug("%s: %s: productNo = 0x%04x, vendorNo = 0x%04x, "
+		    "releaseNo = 0x%04x", __func__, path, udi.udi_productNo,
+		    udi.udi_vendorNo, udi.udi_releaseNo);
+
+		di = &devlist[*olen];
+		memset(di, 0, sizeof(*di));
+		if ((di->path = strdup(path)) == NULL ||
+		    (di->manufacturer = strdup(udi.udi_vendor)) == NULL ||
+		    (di->product = strdup(udi.udi_product)) == NULL) {
+			free(di->manufacturer);
+			free(di->product);
+			return FIDO_ERR_INTERNAL;
+		}
+		di->vendor_id = udi.udi_vendorNo;
+		di->product_id = udi.udi_productNo;
+		(*olen)++;
+	}
+
+	return FIDO_OK;
 }
 
 void *
