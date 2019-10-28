@@ -40,7 +40,7 @@ void *
 hid_open(const char *path)
 {
 	struct hid_openbsd *ret = NULL;
-	report_desc_t rdesc;
+	report_desc_t rdesc = NULL;
 	int len, usb_report_id = 0;
 
 	if ((ret = calloc(1, sizeof(*ret))) == NULL ||
@@ -67,6 +67,7 @@ hid_open(const char *path)
 	    (size_t)len > MAX_REPORT_LEN) {
 		log_debug("%s: bad output report size %d", __func__, len);
  fail:
+		hid_dispose_report_desc(rdesc);
 		close(ret->fd);
 		free(ret);
 		return NULL;
