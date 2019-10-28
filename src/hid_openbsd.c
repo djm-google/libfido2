@@ -189,21 +189,17 @@ int
 hid_write(void *handle, const unsigned char *buf, size_t len)
 {
 	struct hid_openbsd *ctx = (struct hid_openbsd *)handle;
-	struct usb_ctl_report report;
+	ssize_t r;
 
 	if (len != ctx->report_out_len + 1) {
 		log_debug("%s: invalid len: got %zu, want %zu", __func__,
 		    len, ctx->report_out_len);
 		return (-1);
 	}
-
-	memset(&report, 0, sizeof(report));
-	report.ucr_report = buf[0];
-	memcpy(report.ucr_data, buf + 1, len - 1);
-	if (ioctl(ctx->fd, USB_SET_REPORT, &report) != 0) {
-		log_debug("%s: set report: %s", __func__, strerror(errno));
+	if ((r = write(ctx->fd, buf + 1, len - 1)) == -1 ||
+	    (size_t)r != len - 1) {
+		log_debug("%s: write: %s", __func__, strerror(errno));
 		return (-1);
 	}
-
 	return ((int)len);
 }
