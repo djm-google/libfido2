@@ -151,6 +151,7 @@ hid_open(const char *path)
 		return NULL;
 	}	
 	ret->report_out_len = (size_t)len;
+	hid_dispose_report_desc(rdesc);
 	log_debug("%s: USB report ID %d, inlen = %zu outlen = %zu", __func__,
 	    usb_report_id, ret->report_in_len, ret->report_out_len);
 	return (ret);
