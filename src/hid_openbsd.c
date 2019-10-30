@@ -84,6 +84,7 @@ fido_dev_info_manifest(fido_dev_info_t *devlist, size_t ilen, size_t *olen)
 			if ((hitem._usage_page & 0xFFFF0000) == 0xf1d00000)
 				is_fido = 1;
 		}
+		hid_end_parse(hdata);
 		hid_dispose_report_desc(rdesc);
 		close(fd);
 
@@ -103,6 +104,7 @@ fido_dev_info_manifest(fido_dev_info_t *devlist, size_t ilen, size_t *olen)
 		if ((di->path = strdup(path)) == NULL ||
 		    (di->manufacturer = strdup(udi.udi_vendor)) == NULL ||
 		    (di->product = strdup(udi.udi_product)) == NULL) {
+			free(di->path);
 			free(di->manufacturer);
 			free(di->product);
 			return FIDO_ERR_INTERNAL;
