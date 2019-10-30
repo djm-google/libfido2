@@ -62,7 +62,7 @@ fido_dev_info_manifest(fido_dev_info_t *devlist, size_t ilen, size_t *olen)
 			close(fd);
 			continue;
 		}
-		if ((rdesc = hid_get_report_desc(fd)) == 0) {
+		if ((rdesc = hid_get_report_desc(fd)) == NULL) {
 			log_debug("%s: failed to get report descriptor: %s",
 			    __func__, path);
 			close(fd);
@@ -188,7 +188,7 @@ hid_open(const char *path)
 		    strerror(errno));
 		goto fail;
 	}
-	if ((rdesc = hid_get_report_desc(ret->fd)) == 0) {
+	if ((rdesc = hid_get_report_desc(ret->fd)) == NULL) {
 		log_debug("%s: failed to get report descriptor", __func__);
 		goto fail;
 	}
